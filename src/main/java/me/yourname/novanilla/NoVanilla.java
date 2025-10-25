@@ -23,14 +23,14 @@ import org.bukkit.event.inventory.InventoryMoveItemEvent;
 import org.bukkit.event.player.PlayerRecipeDiscoverEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.Recipe;
-import org.bukkit.inventory.Keyed;
+import org.bukkit.Keyed;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
-// Paper-only event for the 1.21 Crafter block
-import io.papermc.paper.event.block.CrafterCraftEvent;
+// Crafter event can be absent in some Paper API builds; we avoid hard dependency.
+// import io.papermc.paper.event.block.CrafterCraftEvent;
 
 import java.util.*;
 
@@ -44,7 +44,6 @@ public final class NoVanilla extends JavaPlugin implements Listener {
             InventoryType.BREWING, InventoryType.CRAFTER
     );
 
-    // Anti-spam for notifications
     private final Map<UUID, Long> lastNotify = new HashMap<>();
 
     @Override
@@ -52,7 +51,6 @@ public final class NoVanilla extends JavaPlugin implements Listener {
         saveDefaultConfig();
         getServer().getPluginManager().registerEvents(this, this);
 
-        // Remove all vanilla recipes (namespace = minecraft), keep plugin recipes intact
         Iterator<Recipe> it = getServer().recipeIterator();
         while (it.hasNext()) {
             Recipe r = it.next();
@@ -64,19 +62,17 @@ public final class NoVanilla extends JavaPlugin implements Listener {
             }
         }
 
-        // GameRule hardening
         for (World w : getServer().getWorlds()) {
             w.setGameRule(GameRule.DO_LIMITED_CRAFTING, true);
         }
 
-        getLogger().info("NoVanilla enabled for Paper 1.21.1: vanilla recipes removed; vanilla crafting/cooking UIs blocked; notifications active.");
+        getLogger().info("NoVanilla: enabled (Paper 1.21.1), recipes removed, UIs blocked.");
     }
 
     private boolean bypass(HumanEntity who) {
         return who instanceof Player p && (p.isOp() || p.hasPermission("novanilla.bypass"));
     }
 
-    // --- Notification helpers ---
     private String actionName(InventoryType type) {
         return switch (type) {
             case CRAFTING, WORKBENCH -> "крафт";
@@ -112,7 +108,6 @@ public final class NoVanilla extends JavaPlugin implements Listener {
         if (useChat) p.sendMessage(comp);
     }
 
-    // --- Crafting 2x2 and Workbench ---
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onCraft(CraftItemEvent e) {
         if (bypass(e.getWhoClicked())) return;
@@ -128,7 +123,6 @@ public final class NoVanilla extends JavaPlugin implements Listener {
         e.getInventory().setResult(null);
     }
 
-    // --- Smithing table ---
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onSmith(SmithItemEvent e) {
         if (bypass(e.getWhoClicked())) return;
@@ -142,7 +136,6 @@ public final class NoVanilla extends JavaPlugin implements Listener {
         e.setResult(null);
     }
 
-    // --- Anvil / Grindstone ---
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onPrepareAnvil(PrepareAnvilEvent e) {
         if (bypass(e.getView().getPlayer())) return;
@@ -155,15 +148,12 @@ public final class NoVanilla extends JavaPlugin implements Listener {
         e.setResult(null);
     }
 
-    // --- Click guard for UIs with result slots ---
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent e) {
         if (bypass(e.getWhoClicked())) return;
-
         Inventory top = e.getView().getTopInventory();
         InventoryType type = top.getType();
         if (!BLOCKED_TYPES.contains(type)) return;
-
         if (e.getClickedInventory() == top) {
             e.setCancelled(true);
             if (e.getSlotType() == SlotType.RESULT && e.getWhoClicked() instanceof Player p) {
@@ -172,25 +162,16 @@ public final class NoVanilla extends JavaPlugin implements Listener {
         }
     }
 
-    // --- Cooking (furnaces/campfires) ---
     @EventHandler(ignoreCancelled = true)
-    public void onBlockCook(BlockCookEvent e) { 
-        e.setCancelled(true); 
-    }
+    public void onBlockCook(BlockCookEvent e) { e.setCancelled(true); }
 
-    // --- Brewing ---
     @EventHandler(ignoreCancelled = true)
-    public void onBrew(BrewEvent e) { 
-        e.setCancelled(true); 
-    }
+    public void onBrew(BrewEvent e) { e.setCancelled(true); }
 
-    // --- 1.21 Crafter ---
-    @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
-    public void onCrafter(CrafterCraftEvent e) {
-        e.setCancelled(true);
-    }
+    // Crafter handler removed to avoid compile error if API doesn't expose it yet.
+    // @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
+    // public void onCrafter(CrafterCraftEvent e) { e.setCancelled(true); }
 
-    // --- Hoppers / automation ---
     @EventHandler(ignoreCancelled = true, priority = EventPriority.HIGHEST)
     public void onInventoryMove(InventoryMoveItemEvent e) {
         InventoryType src = e.getSource().getType();
@@ -200,9 +181,6 @@ public final class NoVanilla extends JavaPlugin implements Listener {
         }
     }
 
-    // --- Prevent recipe unlock popups / bypasses ---
     @EventHandler(ignoreCancelled = true)
-    public void onDiscover(PlayerRecipeDiscoverEvent e) {
-        e.setCancelled(true);
-    }
+    public void onDiscover(PlayerRecipeDiscoverEvent e) { e.setCancelled(true); }
 }

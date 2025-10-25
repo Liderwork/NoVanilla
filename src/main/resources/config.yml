@@ -1,0 +1,5 @@
+notify:
+  actionbar: true
+  chat: false
+  cooldown-ms: 1500
+  message: "&cВанильный {action} отключён"

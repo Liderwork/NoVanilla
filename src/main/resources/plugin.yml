@@ -1,0 +1,10 @@
+name: NoVanilla
+main: me.yourname.novanilla.NoVanilla
+version: 1.0.2
+api-version: "1.21.1"
+author: you
+description: Disable all vanilla crafting/smelting/etc. while keeping plugin-made systems working
+permissions:
+  novanilla.bypass:
+    description: Allow vanilla crafting/cooking for this user (admin bypass)
+    default: op
